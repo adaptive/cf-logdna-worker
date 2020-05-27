@@ -1,9 +1,13 @@
+// Worker Secrets
+// Define LOGDNAINGESTIONKEY
+
+const ingestionKey = LOGDNAINGESTIONKEY;
 let requests = [];
 let workerInception, workerId, requestStartTime, requestEndTime;
 let batchIsRunning = false;
 const maxRequestsPerBatch = 150;
 
-const logRequests = async event => {
+const logRequests = async (event) => {
   if (!batchIsRunning) {
     event.waitUntil(handleBatch(event));
   }
@@ -19,7 +23,7 @@ const logRequests = async event => {
   return response;
 };
 
-const handleBatch = async event => {
+const handleBatch = async (event) => {
   batchIsRunning = true;
   await sleep(10000);
   try {
@@ -29,8 +33,8 @@ const handleBatch = async event => {
   batchIsRunning = false;
 };
 
-const sleep = ms => {
-  return new Promise(resolve => {
+const sleep = (ms) => {
+  return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 };
@@ -57,29 +61,16 @@ const getRequestData = (request, re) => {
       clientTrustScore: (request.cf || {}).clientTrustScore,
       status: (re || {}).status,
       originTime: requestEndTime - requestStartTime,
-      cfCache: re ? re.headers.get("CF-Cache-Status") || "miss" : "MISS"
-    }
+      cfCache: re ? re.headers.get("CF-Cache-Status") || "miss" : "MISS",
+    },
   };
-  data.line =
-    data.meta.status +
-    " " +
-    data.meta.countryCode +
-    " " +
-    data.meta.cfCache +
-    " " +
-    data.meta.originTime +
-    "ms" +
-    " " +
-    data.meta.ip +
-    " " +
-    data.meta.url;
+  data.line = `${data.meta.status} ${data.meta.countryCode} ${data.meta.cfCache} ${data.meta.originTime}ms ${data.meta.ip} ${data.meta.url}`;
   return data;
 };
 
 const postRequests = () => {
-  //console.log('posting',data);
   let data = JSON.stringify({ lines: requests });
-  const username = "My logdna Ingestion key";
+  const username = ingestionKey;
   const password = "";
   const compiledPass = "";
   const hostname = "example.com";
@@ -91,13 +82,13 @@ const postRequests = () => {
   );
   try {
     return fetch(
-      "https://logs.logdna.com/logs/ingest?tag=worker&hostname=" + hostname,
+      `https://logs.logdna.com/logs/ingest?tag=worker&hostname=${hostname}`,
       {
         method: "POST",
         headers: myHeaders,
-        body: data
+        body: data,
       }
-    ).then(r => {
+    ).then((r) => {
       requests = [];
     });
   } catch (err) {
@@ -105,7 +96,7 @@ const postRequests = () => {
   }
 };
 
-const makeid = lenght => {
+const makeid = (lenght) => {
   let text = "";
   const possible = "ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789";
   for (let i = 0; i < lenght; i++)
@@ -113,7 +104,7 @@ const makeid = lenght => {
   return text;
 };
 
-addEventListener("fetch", event => {
+addEventListener("fetch", (event) => {
   event.passThroughOnException();
   event.respondWith(logRequests(event));
 });
